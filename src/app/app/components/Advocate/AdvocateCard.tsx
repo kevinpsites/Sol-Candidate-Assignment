@@ -18,7 +18,7 @@ const AdvocateCard: React.FC<Advocate> = ({
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <li className="max-w-sm rounded overflow-hidden shadow-lg p-4 bg-white">
+    <li className="max-w-sm w-full rounded overflow-hidden shadow-lg p-4 bg-white">
       <div className="px-6 py-4 flex flex-col">
         <div className="flex justify-between items-center mb-2">
           <AdvocateTitle>

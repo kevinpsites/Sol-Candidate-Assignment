@@ -1,70 +1,134 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import AdvocateCard from "./app/components/Advocate/AdvocateCard";
-import { Advocate } from "./app/types";
+import { Advocate, FilterBy } from "./app/types";
+import {
+  sortAdvocatesByDegree,
+  sortAdvocatesByExperience,
+  sortAdvocatesByName,
+  sortAndFilterAdvocates,
+} from "./app/sortUtils";
+import SortComponent from "./app/components/Search/SortComponent";
+import FilterComponent from "./app/components/Search/FilterComponent";
+import SearchBar from "./app/components/Search/SearchBar";
+import FilterSection from "./app/components/Search/FilterSection";
 
 export default function Home() {
   const [advocates, setAdvocates] = useState<Advocate[]>([]);
   const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
 
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [availableDegrees, setAvailableDegrees] = useState<string[]>([]);
+  const [availableSpecialties, setAvailableSpecialties] = useState<string[]>(
+    []
+  );
+
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("az");
+  const [filterBy, setFilterBy] = useState<FilterBy>({
+    city: [],
+    degree: [],
+    specialties: [],
+  });
+
+  const onSearchChange = (newSearchValue: string) => {
+    setSearchTerm(newSearchValue);
+  };
+
+  const onSortChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSortBy(e.target.value);
+  };
+
+  const onFilterChange = (type: keyof FilterBy, newValues: string[]) => {
+    const newFilter = {
+      ...filterBy,
+      [type]: newValues,
+    };
+    setFilterBy(newFilter);
+  };
+
+  const onSearchAndFilter = () => {
+    const newAdvocates = sortAndFilterAdvocates(
+      advocates,
+      sortBy,
+      filterBy,
+      searchTerm
+    );
+
+    setFilteredAdvocates([...newAdvocates]);
+  };
+
   useEffect(() => {
-    console.log("fetching advocates...");
     fetch("/api/advocates").then((response) => {
       response.json().then((jsonResponse) => {
         setAdvocates(jsonResponse.data);
-        setFilteredAdvocates(jsonResponse.data);
+        setFilteredAdvocates(sortAdvocatesByName(jsonResponse.data));
+
+        setAvailableCities(jsonResponse.cities);
+        setAvailableDegrees(jsonResponse.degreeTypes);
+        setAvailableSpecialties(jsonResponse.specialtyTypes);
       });
     });
   }, []);
 
-  const onChange = (e) => {
-    const searchTerm = e.target.value;
-
-    document.getElementById("search-term").innerHTML = searchTerm;
-
-    console.log("filtering advocates...");
-    const filteredAdvocates = advocates.filter((advocate) => {
-      return (
-        advocate.firstName.includes(searchTerm) ||
-        advocate.lastName.includes(searchTerm) ||
-        advocate.city.includes(searchTerm) ||
-        advocate.degree.includes(searchTerm) ||
-        advocate.specialties.includes(searchTerm) ||
-        advocate.yearsOfExperience.includes(searchTerm)
-      );
-    });
-
-    setFilteredAdvocates(filteredAdvocates);
-  };
-
-  const onClick = () => {
-    console.log(advocates);
-    setFilteredAdvocates(advocates);
-  };
+  useEffect(() => {
+    onSearchAndFilter();
+  }, [advocates, sortBy, filterBy, searchTerm]);
 
   return (
     <main style={{ margin: "24px" }}>
-      <h1>Solace Advocates</h1>
+      <h1 className="text-lg">Solace Advocates</h1>
       <br />
       <br />
       <div>
-        <p>Search</p>
-        <p>
-          Searching for: <span id="search-term"></span>
-        </p>
-        <input style={{ border: "1px solid black" }} onChange={onChange} />
-        <button onClick={onClick}>Reset Search</button>
+        <div className="flex flex-col justify-center items-center">
+          <p className="text-2xl">Find your advocate today</p>
+
+          <SearchBar onSubmit={onSearchChange} />
+        </div>
       </div>
       <br />
       <br />
 
-      <h2>Advocates</h2>
+      <h2 className="text-xl mb-4">
+        Advocate Results ({filteredAdvocates.length})
+      </h2>
+      <div className="flex ">
+        <SortComponent onChange={onSortChange} />
+
+        <FilterSection>
+          <FilterComponent
+            optionTitle="Specialties"
+            options={availableSpecialties}
+            onSelectionChange={(selectedOptions) => {
+              onFilterChange("specialties", selectedOptions);
+            }}
+          />
+          <FilterComponent
+            optionTitle="Degree Type"
+            options={availableDegrees}
+            onSelectionChange={(selectedOptions) => {
+              onFilterChange("degree", selectedOptions);
+            }}
+          />
+          <FilterComponent
+            optionTitle="City"
+            options={availableCities}
+            onSelectionChange={(selectedOptions) => {
+              onFilterChange("city", selectedOptions);
+            }}
+          />
+        </FilterSection>
+      </div>
       <br />
       <br />
       <ol className="grid grid-cols-3 gap-3 justify-items-center">
         {filteredAdvocates.map((advocate) => (
-          <AdvocateCard key={advocate.id} {...advocate} />
+          <AdvocateCard
+            key={`${advocate.id}-${advocate.firstName}`}
+            {...advocate}
+          />
         ))}
       </ol>
     </main>
