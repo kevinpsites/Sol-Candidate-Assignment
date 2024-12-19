@@ -8,3 +8,9 @@ export interface Advocate {
   yearsOfExperience: number;
   phoneNumber: number;
 }
+
+export interface FilterBy {
+  city: string[];
+  degree: string[];
+  specialties: string[];
+}
